@@ -1,0 +1,27 @@
+syntax = "proto3";
+package ariston;
+
+option go_package = "github.com/irsl/ari-mqtt/arimsgs";
+
+message ParametersMsg {
+   int64 timestamp = 1;
+   repeated Parameter params = 5000;
+   ParameterLimitsMsg param_limits_msg = 5001;
+}
+
+message Parameter {
+   string key = 1;
+   int32 something1 = 2;
+   int32 value_i = 6;
+   string value_s = 8;   
+}
+
+message ParameterLimit {
+   string key = 1;
+   int64 min = 2;
+   int64 max = 3;
+}
+
+message ParameterLimitsMsg {
+   repeated ParameterLimit param_limits = 1;
+}

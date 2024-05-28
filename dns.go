@@ -1,16 +1,11 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/miekg/dns"
-)
-
-var (
-	dnsResolveTo = flag.String("dns-resolve-to", "", "When configured, a DNS server will be started that resolves A record lookups to this IP address")
-	dnsListener  = flag.String("dns-listener", ":53", "Address to listen on when --dns-resolve-to is configured")
 )
 
 func parseQuery(m *dns.Msg) {
@@ -19,7 +14,13 @@ func parseQuery(m *dns.Msg) {
 		case dns.TypeA:
 			log.Printf("Query for %s\n", q.Name)
 			if q.Name == "broker-ari.everyware-cloud.com." {
-				rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, *dnsResolveTo))
+				rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, Config.Dns_resolve_to))
+				if err == nil {
+					m.Answer = append(m.Answer, rr)
+				}
+			}
+			if strings.Contains(q.Name, "pool.ntp.org.") {
+				rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, Config.Ntp_resolve_to))
 				if err == nil {
 					m.Answer = append(m.Answer, rr)
 				}
@@ -42,7 +43,7 @@ func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func dnsLogic() {
-	if *dnsResolveTo == "" {
+	if Config.Dns_resolve_to == "" {
 		return
 	}
 
@@ -50,8 +51,8 @@ func dnsLogic() {
 	dns.HandleFunc(".", handleDnsRequest)
 
 	// start server
-	server := &dns.Server{Addr: *dnsListener, Net: "udp"}
-	log.Printf("Starting DNS listener at %v\n", *dnsListener)
+	server := &dns.Server{Addr: Config.Dns_listener, Net: "udp"}
+	log.Printf("Starting DNS listener at %v\n", Config.Dns_listener)
 
 	go func() {
 		err := server.ListenAndServe()

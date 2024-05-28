@@ -6,3 +6,6 @@ tmp.txt
 *.key
 *.py
 *.decoded
+*.log
+config.json
+devcontainer.json

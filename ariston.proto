@@ -1,7 +1,7 @@
 syntax = "proto3";
 package ariston;
 
-option go_package = "github.com/irsl/ari-mqtt/arimsgs";
+option go_package = "./arimsgs";
 
 message ParametersMsg {
    int64 timestamp = 1;
@@ -12,16 +12,34 @@ message ParametersMsg {
 message Parameter {
    string key = 1;
    int32 something1 = 2;
-   int32 value_i = 6;
-   string value_s = 8;   
+   oneof value {
+      int32 value_i = 6;
+      string value_s = 8;
+   }
 }
 
 message ParameterLimit {
    string key = 1;
-   int64 min = 2;
-   int64 max = 3;
+   int32 min = 2;
+   int32 max = 3;
 }
 
 message ParameterLimitsMsg {
    repeated ParameterLimit param_limits = 1;
+}
+
+message Consumption {
+   int32 consumption_time_interval = 1;
+   int32 consumption_type = 2;
+   repeated int32 whs = 3;
+}
+
+message ConsumptionMsg {
+   int64 timestamp = 1;
+   repeated Parameter params = 5000;
+   Consumptions consumptions = 5001;
+}
+
+message Consumptions {
+   repeated Consumption consumptions = 1;
 }

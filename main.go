@@ -1,14 +1,66 @@
 package main
 
 import (
-	"flag"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/viper"
 )
 
+type config struct {
+	Api_debug                    bool
+	Api_listener                 string
+	Api_password                 string
+	Api_username                 string
+	Dns_listener                 string
+	Dns_resolve_to               string
+	Ntp_resolve_to               string
+	Mqtt_broker_certificate_path string
+	Mqtt_broker_clear_listener   string
+	Mqtt_broker_private_key_path string
+	Mqtt_broker_tls_listener     string
+	Mqtt_proxy_upstream          string
+	Poll_frequency               int
+	Consumption_poll_frequency   int
+	Devices                      map[string]Devices
+}
+
+type Devices struct {
+	Sys          int
+	WheType      int
+	WheModelType int
+	Name         string
+}
+
+var Config config
+
 func main() {
-	flag.Parse()
+	file, err := os.OpenFile("/config/broker-ari.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.SetOutput(file)
+
+	viper.SetConfigName("config.json")
+	viper.SetConfigType("json")
+	viper.AddConfigPath("/config")
+	viper.ReadInConfig()
+	viper.OnConfigChange(func(e fsnotify.Event) {
+		err = viper.Unmarshal(&Config)
+		if err != nil {
+			log.Fatalf("unable to decode into struct, %v", err)
+		}
+	})
+	viper.WatchConfig()
+
+	err = viper.Unmarshal(&Config)
+	if err != nil {
+		log.Fatalf("unable to decode into struct, %v", err)
+	}
 
 	// Create signals channel to run server until interrupted
 	sigs := make(chan os.Signal, 1)

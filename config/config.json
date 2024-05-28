@@ -1,0 +1,26 @@
+{
+    "Api_debug": false,
+    "Api_listener": ":2080",
+    "Api_password": "",
+    "Api_username": "",
+    "Dns_listener": ":53",
+    "Dns_resolve_to": "",
+    "Ntp_resolve_to": "193.227.197.2",
+    "Mqtt_broker_certificate_path": "",
+    "Mqtt_broker_clear_listener": "",
+    "Mqtt_broker_private_key_path": "",
+    "Mqtt_broker_tls_listener": ":8883",
+    "Mqtt_proxy_upstream": "ssl://broker-ari.everyware-cloud.com:8883",
+    "Poll_frequency": 60,
+    "Consumption_poll_frequency": 600,
+    "Devices": 
+        {
+            "":
+            {
+                "Sys": 4,
+                "WheType": 6,
+                "WheModelType": 4,
+                "Name": ""
+            }
+        }
+}

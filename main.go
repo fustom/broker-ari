@@ -25,10 +25,11 @@ type config struct {
 	Mqtt_proxy_upstream          string
 	Poll_frequency               int
 	Consumption_poll_frequency   int
-	Devices                      map[string]Devices
+	Devices                      []Devices
 }
 
 type Devices struct {
+	GwID         string
 	Sys          int
 	WheType      int
 	WheModelType int

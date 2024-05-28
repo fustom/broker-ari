@@ -50,10 +50,14 @@ func velisPlants(path string, body any, params URL.Values, method string) any {
 		a["sn"] = c.birth.serial_number
 		a["fwVer"] = c.birth.firmware_version
 
-		a["sys"] = Config.Devices[clId].Sys
-		a["wheType"] = Config.Devices[clId].WheType
-		a["wheModelType"] = Config.Devices[clId].WheModelType
-		a["name"] = Config.Devices[clId].Name
+		for _, device := range Config.Devices {
+			if device.GwID == clId {
+				a["sys"] = device.Sys
+				a["wheType"] = device.WheType
+				a["wheModelType"] = device.WheModelType
+				a["name"] = device.Name
+			}
+		}
 
 		re = append(re, a)
 	}

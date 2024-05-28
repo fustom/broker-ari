@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/irsl/broker-ari/arimsgs"
-	"github.com/mitchellh/mapstructure"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -26,10 +25,12 @@ func parseParams(msg *arimsgs.ParametersMsg) (map[string]int32, map[string]arims
 	return paramResult, limitResult
 }
 
-func parseBirthMessage(msg *arimsgs.ParametersMsg) Birth {
-	result := &Birth{}
-	mapstructure.Decode(msg, &result)
-	return *result
+func parseBirthMessage(msg *arimsgs.ParametersMsg) map[string]string {
+	var birthResult = map[string]string{}
+	for _, b := range msg.Params {
+		birthResult[b.Key] = b.GetValueS()
+	}
+	return birthResult
 }
 
 func parseRawMessage(rawMsg []byte) (*arimsgs.ParametersMsg, error) {

@@ -47,8 +47,8 @@ func velisPlants(path string, body any, params URL.Values, method string) any {
 	for clId, c := range clientMap {
 		a := map[string]any{}
 		a["gw"] = clId
-		a["sn"] = c.birth.serial_number
-		a["fwVer"] = c.birth.firmware_version
+		a["sn"] = c.birth["serial_number"]
+		a["fwVer"] = c.birth["firmware_version"]
 
 		for _, device := range Config.Devices {
 			if device.GwID == clId {

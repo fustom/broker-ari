@@ -25,26 +25,9 @@ var (
 	server    *mqtts.Server
 )
 
-type Birth struct {
-	application_ids      string
-	bios_version         string
-	connection_interface string
-	connection_ip        string
-	display_name         string
-	firmware_version     string
-	jvm_profile          string
-	kura_version         string
-	model_id             string
-	model_name           string
-	os_version           string
-	part_number          string
-	serial_number        string
-	uptime               int64
-}
-
 type mqttClient struct {
 	client       mqttc.Client
-	birth        Birth
+	birth        map[string]string
 	params       map[string]int32
 	paramsLimits map[string]arimsgs.ParameterLimit
 	cWh          *arimsgs.ConsumptionMsg
@@ -228,6 +211,8 @@ func mqttLogic() {
 		err := server.Serve()
 		if err != nil {
 			log.Fatal(err)
+		} else {
+			log.Printf("Starting MQTT listener at %v\n", Config.Mqtt_broker_tls_listener)
 		}
 	}()
 

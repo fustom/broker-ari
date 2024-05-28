@@ -14,13 +14,13 @@
     "Poll_frequency": 60,
     "Consumption_poll_frequency": 600,
     "Devices": 
-        {
-            "":
+        [
             {
+                "GwID": "",
                 "Sys": 4,
                 "WheType": 6,
                 "WheModelType": 4,
                 "Name": ""
             }
-        }
+        ]
 }

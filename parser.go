@@ -77,13 +77,13 @@ func getParamMessage(cats []string) *arimsgs.ParametersMsg {
 	return p
 }
 
-func getConsumptionParamMessage() *arimsgs.ParametersMsg {
+func getConsumptionParamMessage(typ string) *arimsgs.ParametersMsg {
 	p := &arimsgs.ParametersMsg{}
 	p.Timestamp = time.Now().UnixNano()
 	pm := &arimsgs.Parameter{
 		Key:        "Typ",
 		Something1: 5,
-		Value:      &arimsgs.Parameter_ValueS{ValueS: "2"},
+		Value:      &arimsgs.Parameter_ValueS{ValueS: typ},
 	}
 	p.Params = append(p.Params, pm)
 
@@ -106,8 +106,8 @@ func getParamMessageRaw(cats []string) ([]byte, error) {
 	return proto.Marshal(p)
 }
 
-func getConsumptionParamMessageRaw() ([]byte, error) {
-	p := getConsumptionParamMessage()
+func getConsumptionParamMessageRaw(typ string) ([]byte, error) {
+	p := getConsumptionParamMessage(typ)
 	return proto.Marshal(p)
 }
 

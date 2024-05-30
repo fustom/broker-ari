@@ -20,7 +20,17 @@
                 "Sys": 4,
                 "WheType": 6,
                 "WheModelType": 4,
-                "Name": ""
+                "Name": "",
+                "ConsumptionTyp": "2",
+                "ConsumptionOffset": 0
+            },
+            {
+                "GwID": "",
+                "Sys": 4,
+                "WheType": 2,
+                "Name": "",
+                "ConsumptionTyp": "7,8",
+                "ConsumptionOffset": 1
             }
         ]
 }

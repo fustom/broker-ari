@@ -189,6 +189,15 @@ func medPlantData(path string, body any, params URL.Values, method string) any {
 			c.params["T_18.0.1"] = int32(newMode)
 		}
 		return velisPlantDataSet(clID, "T_18.0.1", newMode)
+	case len(v) == 5 && v[4] == "switch":
+		newMode := 0
+		if body.(bool) {
+			newMode = 1
+		}
+		if c, ok := clientMap[clID]; ok && c.params != nil {
+			c.params["T_18.0.0"] = int32(newMode)
+		}
+		return velisPlantDataSet(clID, "T_18.0.0", newMode)
 	case len(v) == 5 && v[4] == "switchEco":
 		newMode := 0
 		if body.(bool) {

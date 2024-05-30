@@ -128,8 +128,8 @@ func consumption(path string, body any, params URL.Values, method string) any {
 	if c, ok := clientMap[clID]; ok && c.cWh != nil {
 		ret := []map[string]any{}
 		for _, consumptions := range c.cWh.Consumptions.Consumptions {
-			kwhs := make([]float32, len(consumptions.Whs))
-			for i, wh := range consumptions.Whs {
+			kwhs := make([]float32, len(consumptions.Wh))
+			for i, wh := range consumptions.Wh {
 				kwhs[i] = float32(wh) / 1000
 			}
 

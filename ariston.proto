@@ -31,7 +31,7 @@ message ParameterLimitsMsg {
 message Consumption {
    int32 consumption_time_interval = 1;
    int32 consumption_type = 2;
-   repeated int32 whs = 3;
+   repeated int32 wh = 3;
 }
 
 message ConsumptionMsg {

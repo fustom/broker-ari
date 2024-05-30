@@ -123,8 +123,7 @@ func (h *MsgHook) OnPublish(cl *mqtts.Client, pk packets.Packet) (packets.Packet
 		} else {
 			log.Printf("Error while decoding the birth payload: %v", err)
 		}
-	}
-	if strings.HasSuffix(pk.TopicName, "/REPLY/params") {
+	} else if strings.HasSuffix(pk.TopicName, "/REPLY/params") {
 		b, err := parseRawMessage(pk.Payload)
 		if err == nil {
 			c := clientMap[cl.ID]
@@ -133,8 +132,7 @@ func (h *MsgHook) OnPublish(cl *mqtts.Client, pk packets.Packet) (packets.Packet
 		} else {
 			log.Printf("Error while decoding the params payload: %v", err)
 		}
-	}
-	if strings.HasSuffix(pk.TopicName, "/REPLY/consumptions") {
+	} else if strings.HasSuffix(pk.TopicName, "/REPLY/consumptions") {
 		b, err := parseConsumptionMessage(pk.Payload)
 		if err == nil {
 			c := clientMap[cl.ID]
@@ -143,8 +141,7 @@ func (h *MsgHook) OnPublish(cl *mqtts.Client, pk packets.Packet) (packets.Packet
 		} else {
 			log.Printf("Error while decoding the params payload: %v", err)
 		}
-	}
-	if strings.HasSuffix(pk.TopicName, "/ErrListRst") {
+	} else if strings.HasSuffix(pk.TopicName, "/ErrListRst") {
 		b, err := parseRawMessage(pk.Payload)
 		if err == nil {
 			c := clientMap[cl.ID]
@@ -153,6 +150,8 @@ func (h *MsgHook) OnPublish(cl *mqtts.Client, pk packets.Packet) (packets.Packet
 		} else {
 			log.Printf("Error while decoding the params payload: %v", err)
 		}
+	} else {
+		parseRawMessage(pk.Payload)
 	}
 	return pk, nil
 }

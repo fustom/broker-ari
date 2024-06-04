@@ -29,11 +29,13 @@ type config struct {
 }
 
 type Devices struct {
-	GwID         string
-	Sys          int
-	WheType      int
-	WheModelType int
-	Name         string
+	GwID              string
+	Sys               int
+	WheType           int
+	WheModelType      int
+	Name              string
+	ConsumptionTyp    string
+	ConsumptionOffset int
 }
 
 var Config config

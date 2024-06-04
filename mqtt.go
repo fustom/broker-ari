@@ -240,7 +240,8 @@ func mqttLogic() {
 					if device.GwID == clientId {
 						if device.Sys == 4 {
 							if device.WheType == 6 {
-								m, err := getParamMessageRaw([]string{"T_18.0.0", "T_18.0.1", "T_18.0.2", "T_18.0.3", "T_18.0.5", "T_18.1.0", "T_18.1.3", "T_18.3.0", "T_18.3.1", "T_18.3.2", "T_18.3.3", "T_18.3.5", "T_18.3.6"})
+								m, err := getParamMessageRaw([]string{"T_18.0.0", "T_18.0.1", "T_18.0.2", "T_18.0.3", "T_18.0.5", "T_18.1.0", "T_18.1.3",
+									"T_18.3.0", "T_18.3.1", "T_18.3.2", "T_18.3.3", "T_18.3.5", "T_18.3.6"})
 								if err == nil {
 
 									err := server.Publish("$EDC/ari/"+clientId+"/ar1/GET/Menu/Par", m, false, 0)
@@ -252,7 +253,9 @@ func mqttLogic() {
 								}
 							}
 							if device.WheType == 2 {
-								m, err := getParamMessageRaw([]string{"T_22.0.0", "T_22.0.3", "T_22.1.0", "T_22.1.3", "T_22.3.0", "T_22.3.1", "T_22.3.4", "T_22.3.6", "T_22.3.9"})
+								m, err := getParamMessageRaw([]string{"T_22.0.0", "T_22.0.1", "T_22.0.2", "T_22.0.3", "T_22.0.4", "T_22.0.5", "T_22.1.0",
+									"T_22.1.1", "T_22.1.2", "T_22.1.3", "T_22.1.4", "T_22.2.1", "T_22.2.2", "T_22.3.0", "T_22.3.1", "T_22.3.4", "T_22.3.5",
+									"T_22.3.6", "T_22.3.9"})
 								if err == nil {
 
 									err := server.Publish("$EDC/ari/"+clientId+"/ar1/GET/Menu/Par", m, false, 0)
@@ -291,12 +294,16 @@ func mqttLogic() {
 		}
 		for {
 			for clientId := range clientMap {
-				log.Printf("requesting parameters: %v", clientId)
-				m, err := getConsumptionParamMessageRaw()
-				if err == nil {
-					err = server.Publish("$EDC/ari/"+clientId+"/ar1/GET/Stat/cWh", m, false, 0)
-					if err != nil {
-						log.Printf("unable to publish message to read out parameters to %v: %v", clientId, err)
+				log.Printf("requesting consumptions: %v", clientId)
+				for _, device := range Config.Devices {
+					if device.GwID == clientId {
+						m, err := getConsumptionParamMessageRaw(device.ConsumptionTyp)
+						if err == nil {
+							err = server.Publish("$EDC/ari/"+clientId+"/ar1/GET/Stat/cWh", m, false, 0)
+							if err != nil {
+								log.Printf("unable to publish message to read out consumptions to %v: %v", clientId, err)
+							}
+						}
 					}
 				}
 			}

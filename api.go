@@ -125,6 +125,14 @@ func features(path string, body any, params URL.Values, method string) any {
 func consumption(path string, body any, params URL.Values, method string) any {
 	v := strings.Split(path, "/")
 	clID := v[3]
+
+	offset := 0
+	for _, device := range Config.Devices {
+		if device.GwID == clID {
+			offset = device.ConsumptionOffset
+		}
+	}
+
 	if c, ok := clientMap[clID]; ok && c.cWh != nil {
 		ret := []map[string]any{}
 		for _, consumptions := range c.cWh.Consumptions.Consumptions {
@@ -134,7 +142,7 @@ func consumption(path string, body any, params URL.Values, method string) any {
 			}
 
 			re := map[string]any{}
-			re["k"] = consumptions.ConsumptionType
+			re["k"] = consumptions.ConsumptionType + int32(offset)
 			re["p"] = consumptions.ConsumptionTimeInterval
 			re["v"] = kwhs
 
@@ -242,7 +250,62 @@ func postMedPlantSettings(body any, clID string) any {
 			if c, ok := clientMap[clID]; ok && c.params != nil {
 				c.params["T_18.0.5"] = int32(newMode)
 			}
-			return velisPlantDataSet(clID, "T_18.0.5", newMode) //TODO
+			return velisPlantDataSet(clID, "T_18.0.5", newMode)
+		}
+	}
+	return nil
+}
+
+func postSePlantSettings(body any, clID string) any {
+	bodyMap := body.(map[string]any)
+	for key, value := range bodyMap {
+		if key == "SeMaxSetpointTemperature" {
+			valueMap := value.(map[string]any)
+			newTemp := valueMap["new"].(int) * 10
+			if c, ok := clientMap[clID]; ok && c.params != nil {
+				c.params["T_22.1.2"] = int32(newTemp)
+			}
+			return velisPlantDataSet(clID, "T_22.1.2", newTemp)
+		}
+		if key == "SeAntiCoolingTemperature" {
+			valueMap := value.(map[string]any)
+			newTemp := valueMap["new"].(int) * 10
+			if c, ok := clientMap[clID]; ok && c.params != nil {
+				c.params["T_22.1.4"] = int32(newTemp)
+			}
+			return velisPlantDataSet(clID, "T_22.1.4", newTemp)
+		}
+		if key == "SeAntilegionellaOnOff" {
+			valueMap := value.(map[string]any)
+			newMode := int(valueMap["new"].(float64))
+			if c, ok := clientMap[clID]; ok && c.params != nil {
+				c.params["T_22.0.1"] = int32(newMode)
+			}
+			return velisPlantDataSet(clID, "T_22.0.1", newMode)
+		}
+		if key == "SePermanentBoostOnOff" {
+			valueMap := value.(map[string]any)
+			newMode := int(valueMap["new"].(float64))
+			if c, ok := clientMap[clID]; ok && c.params != nil {
+				c.params["T_22.0.2"] = int32(newMode)
+			}
+			return velisPlantDataSet(clID, "T_22.0.2", newMode)
+		}
+		if key == "SeNightModeOnOff" {
+			valueMap := value.(map[string]any)
+			newMode := int(valueMap["new"].(float64))
+			if c, ok := clientMap[clID]; ok && c.params != nil {
+				c.params["T_22.0.4"] = int32(newMode)
+			}
+			return velisPlantDataSet(clID, "T_22.0.4", newMode)
+		}
+		if key == "SeAntiCoolingOnOff" {
+			valueMap := value.(map[string]any)
+			newMode := int(valueMap["new"].(float64))
+			if c, ok := clientMap[clID]; ok && c.params != nil {
+				c.params["T_22.0.5"] = int32(newMode)
+			}
+			return velisPlantDataSet(clID, "T_22.0.5", newMode)
 		}
 	}
 	return nil
@@ -255,18 +318,17 @@ func sePlantData(path string, body any, params URL.Values, method string) any {
 	case len(v) == 4:
 		re := map[string]any{}
 		if c, ok := clientMap[clID]; ok && c.params != nil {
+			re["on"] = c.params["T_22.0.0"]
 			re["mode"] = c.params["T_22.0.3"]
-			re["temp"] = c.params["T_22.3.6"] / 10
 			re["boostReqTemp"] = c.params["T_22.1.0"] / 10
-
-			// TODO: these to may need to be swapped
-			re["procReqTemp"] = c.params["T_22.3.1"] / 10
 			re["reqTemp"] = c.params["T_22.1.3"] / 10
+			re["heatReq"] = c.params["T_22.3.0"]
+			re["procReqTemp"] = c.params["T_22.3.1"] / 10
+			re["antiLeg"] = c.params["T_22.3.4"]
+			re["temp"] = c.params["T_22.3.6"] / 10
+			re["avShw"] = c.params["T_22.3.9"]
 
 			re["gw"] = clID
-
-			// TODO: figure out the others, e.g. on, heatReq, legionella
-
 		}
 		return re
 	case len(v) == 5 && v[4] == "temperature":
@@ -277,7 +339,35 @@ func sePlantData(path string, body any, params URL.Values, method string) any {
 		bodyMap := body.(map[string]any)
 		newMode := int(bodyMap["new"].(float64))
 		return velisPlantDataSet(clID, "T_22.0.3", newMode)
+	case len(v) == 5 && v[4] == "switch":
+		newMode := 0
+		if body.(bool) {
+			newMode = 1
+		}
+		if c, ok := clientMap[clID]; ok && c.params != nil {
+			c.params["T_22.0.0"] = int32(newMode)
+		}
+		return velisPlantDataSet(clID, "T_22.0.0", newMode)
+	case len(v) == 5 && v[4] == "plantSettings":
+		if method == "POST" {
+			return postSePlantSettings(body, clID)
+		}
+		re := map[string]any{}
+		if c, ok := clientMap[clID]; ok && c.params != nil {
+			re["SeAntilegionellaOnOff"] = c.params["T_22.0.1"]
+			re["SePermanentBoostOnOff"] = c.params["T_22.0.2"]
+			re["SeNightModeOnOff"] = c.params["T_22.0.4"]
+			re["SeAntiCoolingOnOff"] = c.params["T_22.0.5"]
+			re["SeMaxSetpointTemperature"] = c.params["T_22.1.2"] / 10
+			re["SeMaxSetpointTemperatureMin"] = c.paramsLimits["T_22.1.2"].Min / 10
+			re["SeMaxSetpointTemperatureMax"] = c.paramsLimits["T_22.1.2"].Max / 10
+			re["SeAntiCoolingTemperature"] = c.params["T_22.1.4"] / 10
+			re["SeAntiCoolingTemperatureMin"] = c.paramsLimits["T_22.1.4"].Min / 10
+			re["SeAntiCoolingTemperatureMax"] = c.paramsLimits["T_22.1.4"].Max / 10
+		}
+		return re
 	default:
+		log.Printf("no route for path %s", path)
 		return nil
 	}
 }

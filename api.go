@@ -93,14 +93,18 @@ func login(path string, body any, params URL.Values, method string) any {
 	return map[string]any{"token": apiToken}
 }
 
-func velisPlantDataSet(clId, cat string, value int) any {
-	b, err := putParams(cat, int32(value))
+func velisPlantDataSet(clID, cat string, value int32) any {
+	b, err := putParams(cat, value)
 	if err == nil {
-		err = server.Publish("$EDC/ari/"+clId+"/ar1/PUT/Menu/Par", b, false, 0)
+		err = server.Publish("$EDC/ari/"+clID+"/ar1/PUT/Menu/Par", b, false, 0)
 	}
 	if err != nil {
-		log.Printf("error for %v %v %v: %v", clId, cat, value, err)
+		log.Printf("error for %v %v %v: %v", clID, cat, value, err)
 		return nil
+	}
+	// remembering the new setting so it is returned correctly even if the API is called before the next polling happens
+	if c, ok := clientMap[clID]; ok && c.params != nil {
+			c.params[cat] = value
 	}
 	return map[string]bool{"success": true}
 
@@ -176,7 +180,7 @@ func medPlantData(path string, body any, params URL.Values, method string) any {
 				minutes -= hours * 60
 			}
 			re["rmTm"] = fmt.Sprintf("%d:%d:0", hours, minutes)
-			re["temp"] = c.params["T_18.3.3"] / 10
+			re["temp"] = float32(c.params["T_18.3.3"]) / 10
 			re["heatReq"] = c.params["T_18.3.5"]
 			re["procReqTemp"] = c.params["T_18.3.6"] / 10
 
@@ -185,36 +189,24 @@ func medPlantData(path string, body any, params URL.Values, method string) any {
 		return re
 	case len(v) == 5 && v[4] == "temperature":
 		bodyMap := body.(map[string]any)
-		newTemp := int(bodyMap["new"].(float64)) * 10
-		if c, ok := clientMap[clID]; ok && c.params != nil {
-			c.params["T_18.1.0"] = int32(newTemp)
-		}
+		newTemp := int32(bodyMap["new"].(float64)) * 10
 		return velisPlantDataSet(clID, "T_18.1.0", newTemp)
 	case len(v) == 5 && v[4] == "mode":
 		bodyMap := body.(map[string]any)
-		newMode := int(bodyMap["new"].(float64))
-		if c, ok := clientMap[clID]; ok && c.params != nil {
-			c.params["T_18.0.1"] = int32(newMode)
-		}
+		newMode := int32(bodyMap["new"].(float64))
 		return velisPlantDataSet(clID, "T_18.0.1", newMode)
 	case len(v) == 5 && v[4] == "switch":
 		newMode := 0
 		if body.(bool) {
 			newMode = 1
 		}
-		if c, ok := clientMap[clID]; ok && c.params != nil {
-			c.params["T_18.0.0"] = int32(newMode)
-		}
-		return velisPlantDataSet(clID, "T_18.0.0", newMode)
+		return velisPlantDataSet(clID, "T_18.0.0", int32(newMode))
 	case len(v) == 5 && v[4] == "switchEco":
 		newMode := 0
 		if body.(bool) {
 			newMode = 1
 		}
-		if c, ok := clientMap[clID]; ok && c.params != nil {
-			c.params["T_18.0.2"] = int32(newMode)
-		}
-		return velisPlantDataSet(clID, "T_18.0.2", newMode)
+		return velisPlantDataSet(clID, "T_18.0.2", int32(newMode))
 	case len(v) == 5 && v[4] == "plantSettings":
 		if method == "POST" {
 			return postMedPlantSettings(body, clID)
@@ -239,18 +231,12 @@ func postMedPlantSettings(body any, clID string) any {
 		if key == "MedMaxSetpointTemperature" {
 			valueMap := value.(map[string]any)
 			newTemp := valueMap["new"].(int) * 10
-			if c, ok := clientMap[clID]; ok && c.params != nil {
-				c.params["T_18.1.3"] = int32(newTemp)
-			}
-			return velisPlantDataSet(clID, "T_18.1.3", newTemp)
+			return velisPlantDataSet(clID, "T_18.1.3", int32(newTemp))
 		}
 		if key == "MedAntilegionellaOnOff" {
 			valueMap := value.(map[string]any)
 			newMode := int(valueMap["new"].(float64))
-			if c, ok := clientMap[clID]; ok && c.params != nil {
-				c.params["T_18.0.5"] = int32(newMode)
-			}
-			return velisPlantDataSet(clID, "T_18.0.5", newMode)
+			return velisPlantDataSet(clID, "T_18.0.5", int32(newMode))
 		}
 	}
 	return nil
@@ -262,49 +248,31 @@ func postSePlantSettings(body any, clID string) any {
 		if key == "SeMaxSetpointTemperature" {
 			valueMap := value.(map[string]any)
 			newTemp := valueMap["new"].(int) * 10
-			if c, ok := clientMap[clID]; ok && c.params != nil {
-				c.params["T_22.1.2"] = int32(newTemp)
-			}
-			return velisPlantDataSet(clID, "T_22.1.2", newTemp)
+			return velisPlantDataSet(clID, "T_22.1.2", int32(newTemp))
 		}
 		if key == "SeAntiCoolingTemperature" {
 			valueMap := value.(map[string]any)
 			newTemp := valueMap["new"].(int) * 10
-			if c, ok := clientMap[clID]; ok && c.params != nil {
-				c.params["T_22.1.4"] = int32(newTemp)
-			}
-			return velisPlantDataSet(clID, "T_22.1.4", newTemp)
+			return velisPlantDataSet(clID, "T_22.1.4", int32(newTemp))
 		}
 		if key == "SeAntilegionellaOnOff" {
 			valueMap := value.(map[string]any)
-			newMode := int(valueMap["new"].(float64))
-			if c, ok := clientMap[clID]; ok && c.params != nil {
-				c.params["T_22.0.1"] = int32(newMode)
-			}
+			newMode := int32(valueMap["new"].(float64))
 			return velisPlantDataSet(clID, "T_22.0.1", newMode)
 		}
 		if key == "SePermanentBoostOnOff" {
 			valueMap := value.(map[string]any)
-			newMode := int(valueMap["new"].(float64))
-			if c, ok := clientMap[clID]; ok && c.params != nil {
-				c.params["T_22.0.2"] = int32(newMode)
-			}
+			newMode := int32(valueMap["new"].(float64))
 			return velisPlantDataSet(clID, "T_22.0.2", newMode)
 		}
 		if key == "SeNightModeOnOff" {
 			valueMap := value.(map[string]any)
-			newMode := int(valueMap["new"].(float64))
-			if c, ok := clientMap[clID]; ok && c.params != nil {
-				c.params["T_22.0.4"] = int32(newMode)
-			}
+			newMode := int32(valueMap["new"].(float64))
 			return velisPlantDataSet(clID, "T_22.0.4", newMode)
 		}
 		if key == "SeAntiCoolingOnOff" {
 			valueMap := value.(map[string]any)
-			newMode := int(valueMap["new"].(float64))
-			if c, ok := clientMap[clID]; ok && c.params != nil {
-				c.params["T_22.0.5"] = int32(newMode)
-			}
+			newMode := int32(valueMap["new"].(float64))
 			return velisPlantDataSet(clID, "T_22.0.5", newMode)
 		}
 	}
@@ -325,7 +293,7 @@ func sePlantData(path string, body any, params URL.Values, method string) any {
 			re["heatReq"] = c.params["T_22.3.0"]
 			re["procReqTemp"] = c.params["T_22.3.1"] / 10
 			re["antiLeg"] = c.params["T_22.3.4"]
-			re["temp"] = c.params["T_22.3.6"] / 10
+			re["temp"] = float32(c.params["T_22.3.6"]) / 10
 			re["avShw"] = c.params["T_22.3.9"]
 
 			re["gw"] = clID
@@ -333,21 +301,18 @@ func sePlantData(path string, body any, params URL.Values, method string) any {
 		return re
 	case len(v) == 5 && v[4] == "temperature":
 		bodyMap := body.(map[string]any)
-		newTemp := int(bodyMap["new"].(float64)) * 10
+		newTemp := int32(bodyMap["new"].(float64)) * 10
 		return velisPlantDataSet(clID, "T_22.1.3", newTemp)
 	case len(v) == 5 && v[4] == "mode":
 		bodyMap := body.(map[string]any)
-		newMode := int(bodyMap["new"].(float64))
+		newMode := int32(bodyMap["new"].(float64))
 		return velisPlantDataSet(clID, "T_22.0.3", newMode)
 	case len(v) == 5 && v[4] == "switch":
 		newMode := 0
 		if body.(bool) {
 			newMode = 1
 		}
-		if c, ok := clientMap[clID]; ok && c.params != nil {
-			c.params["T_22.0.0"] = int32(newMode)
-		}
-		return velisPlantDataSet(clID, "T_22.0.0", newMode)
+		return velisPlantDataSet(clID, "T_22.0.0", int32(newMode))
 	case len(v) == 5 && v[4] == "plantSettings":
 		if method == "POST" {
 			return postSePlantSettings(body, clID)

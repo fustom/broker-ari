@@ -39,22 +39,29 @@ type AuthHook struct {
 	server *mqtts.Server
 }
 
+func mqtt_log_Printf(t string, params ...any) {
+	if !Config.Mqtt_debug {
+		return
+	}
+	log.Printf(t, params...)
+}
+
 func (h *AuthHook) OnPacketRead(cl *mqtts.Client, pk packets.Packet) (packets.Packet, error) {
-	// log.Printf("OnPacketRead:  %+v", pk)
+	// mqtt_log_Printf("OnPacketRead:  %+v", pk)
 	if pk.Connect.WillFlag && len(pk.Connect.WillPayload) == 0 {
 		// they violate [MQTT-3.1.2-9]
-		log.Printf("Patching WILL payload")
+		mqtt_log_Printf("Patching WILL payload")
 		pk.Connect.WillPayload = []byte{0}
 	}
 	return pk, nil
 }
 func (h *AuthHook) OnACLCheck(cl *mqtts.Client, topic string, write bool) bool {
-	log.Printf("OnACLCheck: topic: %v, write: %v", topic, write)
+	mqtt_log_Printf("OnACLCheck: topic: %v, write: %v", topic, write)
 	return true
 }
 func (h *AuthHook) OnConnectAuthenticate(cl *mqtts.Client, pk packets.Packet) bool {
-	// log.Printf("OnConnectAuthenticate: %v connect params: %+v", cl.ID, pk.Connect)
-	log.Printf("OnConnectAuthenticate: %v, username: %v, password: %+v", cl.ID, string(pk.Connect.Username), string(pk.Connect.Password))
+	// mqtt_log_Printf("OnConnectAuthenticate: %v connect params: %+v", cl.ID, pk.Connect)
+	mqtt_log_Printf("OnConnectAuthenticate: %v, username: %v, password: %+v", cl.ID, string(pk.Connect.Username), string(pk.Connect.Password))
 
 	if Config.Mqtt_proxy_upstream == "" {
 		// proxying is disabled
@@ -71,14 +78,14 @@ func (h *AuthHook) OnConnectAuthenticate(cl *mqtts.Client, pk packets.Packet) bo
 	opts.SetPassword(string(pk.Connect.Password))
 	opts.SetTLSConfig(&tls.Config{InsecureSkipVerify: true})
 	opts.SetDefaultPublishHandler(func(client mqttc.Client, msg mqttc.Message) {
-		log.Printf("OnPublish from the upstream: %s, topic: %s payload: %s", cl.ID, msg.Topic(),
+		mqtt_log_Printf("OnPublish from the upstream: %s, topic: %s payload: %s", cl.ID, msg.Topic(),
 			base64.StdEncoding.EncodeToString(msg.Payload()))
 		h.server.Publish(msg.Topic(), msg.Payload(), msg.Retained(), msg.Qos())
 	})
-	log.Printf("connecting to the upstream mqtt broker: %v, %v", cl.ID, Config.Mqtt_proxy_upstream)
+	mqtt_log_Printf("connecting to the upstream mqtt broker: %v, %v", cl.ID, Config.Mqtt_proxy_upstream)
 	client := mqttc.NewClient(opts)
 	if token := client.Connect(); token.WaitTimeout(5*time.Second) && token.Error() != nil {
-		log.Printf("Unable to connect to the upstream mqtt broker: %v", token.Error())
+		mqtt_log_Printf("Unable to connect to the upstream mqtt broker: %v", token.Error())
 		return false
 	}
 
@@ -89,7 +96,7 @@ func (h *AuthHook) OnConnectAuthenticate(cl *mqtts.Client, pk packets.Packet) bo
 	return true
 }
 func (h *AuthHook) OnDisconnect(cl *mqtts.Client, err error, expire bool) {
-	log.Printf("OnDisconnect on the local broker: %v: %v", cl.ID, err)
+	mqtt_log_Printf("OnDisconnect on the local broker: %v: %v", cl.ID, err)
 	h.server.Clients.Delete(cl.ID)
 	c := clientMap[cl.ID]
 	if c.client != nil {
@@ -106,11 +113,11 @@ type MsgHook struct {
 }
 
 func (h *MsgHook) OnPublish(cl *mqtts.Client, pk packets.Packet) (packets.Packet, error) {
-	log.Printf("OnPublish on the local broker by %v: %v, %v", cl.ID, pk.TopicName, base64.StdEncoding.EncodeToString(pk.Payload))
+	mqtt_log_Printf("OnPublish on the local broker by %v: %v, %v", cl.ID, pk.TopicName, base64.StdEncoding.EncodeToString(pk.Payload))
 	if cl.ID != "inline" && !strings.Contains(pk.TopicName, "/inline/") {
 		c := clientMap[cl.ID]
 		if c.client != nil && c.client.IsConnected() {
-			log.Printf("relaying to the upstream")
+			mqtt_log_Printf("relaying to the upstream")
 			c.client.Publish(pk.TopicName, pk.FixedHeader.Qos, pk.FixedHeader.Retain, pk.Payload)
 		}
 	}
@@ -121,7 +128,7 @@ func (h *MsgHook) OnPublish(cl *mqtts.Client, pk packets.Packet) (packets.Packet
 			c.birth = parseBirthMessage(b)
 			clientMap[cl.ID] = c
 		} else {
-			log.Printf("Error while decoding the birth payload: %v", err)
+			mqtt_log_Printf("Error while decoding the birth payload: %v", err)
 		}
 	} else if strings.HasSuffix(pk.TopicName, "/REPLY/params") {
 		b, err := parseRawMessage(pk.Payload)
@@ -130,7 +137,7 @@ func (h *MsgHook) OnPublish(cl *mqtts.Client, pk packets.Packet) (packets.Packet
 			c.params, c.paramsLimits = parseParams(b)
 			clientMap[cl.ID] = c
 		} else {
-			log.Printf("Error while decoding the params payload: %v", err)
+			mqtt_log_Printf("Error while decoding the params payload: %v", err)
 		}
 	} else if strings.HasSuffix(pk.TopicName, "/REPLY/consumptions") {
 		b, err := parseConsumptionMessage(pk.Payload)
@@ -139,7 +146,7 @@ func (h *MsgHook) OnPublish(cl *mqtts.Client, pk packets.Packet) (packets.Packet
 			c.cWh = b
 			clientMap[cl.ID] = c
 		} else {
-			log.Printf("Error while decoding the params payload: %v", err)
+			mqtt_log_Printf("Error while decoding the params payload: %v", err)
 		}
 	} else if strings.HasSuffix(pk.TopicName, "/ErrListRst") {
 		b, err := parseRawMessage(pk.Payload)
@@ -148,7 +155,7 @@ func (h *MsgHook) OnPublish(cl *mqtts.Client, pk packets.Packet) (packets.Packet
 			c.errors = b
 			clientMap[cl.ID] = c
 		} else {
-			log.Printf("Error while decoding the params payload: %v", err)
+			mqtt_log_Printf("Error while decoding the params payload: %v", err)
 		}
 	} else {
 		parseRawMessage(pk.Payload)
@@ -158,7 +165,7 @@ func (h *MsgHook) OnPublish(cl *mqtts.Client, pk packets.Packet) (packets.Packet
 func (h *MsgHook) OnSubscribe(cl *mqtts.Client, pk packets.Packet) packets.Packet {
 	c := clientMap[cl.ID]
 	for _, s := range pk.Filters {
-		log.Printf("OnSubscribe: %v", s.Filter)
+		mqtt_log_Printf("OnSubscribe: %v", s.Filter)
 		if c.client != nil && c.client.IsConnected() {
 			c.client.Subscribe(s.Filter, s.Qos, nil)
 		}
@@ -211,7 +218,7 @@ func mqttLogic() {
 		if err != nil {
 			log.Fatal(err)
 		} else {
-			log.Printf("Starting MQTT listener at %v\n", Config.Mqtt_broker_tls_listener)
+			mqtt_log_Printf("Starting MQTT listener at %v\n", Config.Mqtt_broker_tls_listener)
 		}
 	}()
 
@@ -235,7 +242,7 @@ func mqttLogic() {
 
 		for {
 			for clientId := range clientMap {
-				log.Printf("requesting parameters: %v", clientId)
+				mqtt_log_Printf("requesting parameters: %v", clientId)
 				for _, device := range Config.Devices {
 					if device.GwID == clientId {
 						if device.Sys == 4 {
@@ -246,10 +253,10 @@ func mqttLogic() {
 
 									err := server.Publish("$EDC/ari/"+clientId+"/ar1/GET/Menu/Par", m, false, 0)
 									if err != nil {
-										log.Printf("unable to publish message to read out parameters to %v: %v", clientId, err)
+										mqtt_log_Printf("unable to publish message to read out parameters to %v: %v", clientId, err)
 									}
 								} else {
-									log.Printf("unable to build params query: %v", err)
+									mqtt_log_Printf("unable to build params query: %v", err)
 								}
 							}
 							if device.WheType == 2 {
@@ -260,10 +267,10 @@ func mqttLogic() {
 
 									err := server.Publish("$EDC/ari/"+clientId+"/ar1/GET/Menu/Par", m, false, 0)
 									if err != nil {
-										log.Printf("unable to publish message to read out parameters to %v: %v", clientId, err)
+										mqtt_log_Printf("unable to publish message to read out parameters to %v: %v", clientId, err)
 									}
 								} else {
-									log.Printf("unable to build params query: %v", err)
+									mqtt_log_Printf("unable to build params query: %v", err)
 								}
 							}
 						}
@@ -294,14 +301,14 @@ func mqttLogic() {
 		}
 		for {
 			for clientId := range clientMap {
-				log.Printf("requesting consumptions: %v", clientId)
+				mqtt_log_Printf("requesting consumptions: %v", clientId)
 				for _, device := range Config.Devices {
 					if device.GwID == clientId {
 						m, err := getConsumptionParamMessageRaw(device.ConsumptionTyp)
 						if err == nil {
 							err = server.Publish("$EDC/ari/"+clientId+"/ar1/GET/Stat/cWh", m, false, 0)
 							if err != nil {
-								log.Printf("unable to publish message to read out consumptions to %v: %v", clientId, err)
+								mqtt_log_Printf("unable to publish message to read out consumptions to %v: %v", clientId, err)
 							}
 						}
 					}
@@ -317,11 +324,11 @@ func mqttLogic() {
 	// go func() {
 	// 	for {
 	// 		for clientId := range clientMap {
-	// 			log.Printf("requesting parameters: %v", clientId)
+	// 			mqtt_log_Printf("requesting parameters: %v", clientId)
 
 	// 			err := server.Publish("ari/"+clientId+"/ar1/Err/ErrListRst", nil, false, 0)
 	// 			if err != nil {
-	// 				log.Printf("unable to publish message to read out parameters to %v: %v", clientId, err)
+	// 				mqtt_log_Printf("unable to publish message to read out parameters to %v: %v", clientId, err)
 	// 			}
 	// 		}
 

@@ -18,11 +18,13 @@ type config struct {
 	Dns_listener                 string
 	Dns_resolve_to               string
 	Ntp_resolve_to               string
+	Mqtt_debug                   bool
 	Mqtt_broker_certificate_path string
 	Mqtt_broker_clear_listener   string
 	Mqtt_broker_private_key_path string
 	Mqtt_broker_tls_listener     string
 	Mqtt_proxy_upstream          string
+	Parser_debug                 bool
 	Poll_frequency               int
 	Consumption_poll_frequency   int
 	Devices                      []Devices

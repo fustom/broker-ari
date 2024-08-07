@@ -1,5 +1,7 @@
 {
     "Api_debug": false,
+    "Mqtt_debug": false,
+    "Parser_debug": false,
     "Api_listener": ":2080",
     "Api_password": "",
     "Api_username": "",

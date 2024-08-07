@@ -9,6 +9,14 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func parser_log_Printf(t string, params ...any) {
+	if !Config.Parser_debug {
+		return
+	}
+	log.Printf(t, params...)
+}
+
+
 func parseParams(msg *arimsgs.ParametersMsg) (map[string]int32, map[string]arimsgs.ParameterLimit) {
 	var paramResult = map[string]int32{}
 	var limitResult = map[string]arimsgs.ParameterLimit{}
@@ -38,7 +46,7 @@ func parseRawMessage(rawMsg []byte) (*arimsgs.ParametersMsg, error) {
 	if err := proto.Unmarshal(rawMsg, pm); err != nil {
 		return nil, err
 	}
-	log.Print(pm)
+	parser_log_Printf("%s", pm)
 	return pm, nil
 }
 
@@ -47,7 +55,7 @@ func parseConsumptionMessage(rawMsg []byte) (*arimsgs.ConsumptionMsg, error) {
 	if err := proto.Unmarshal(rawMsg, cm); err != nil {
 		return nil, err
 	}
-	log.Print(cm)
+	parser_log_Printf("%s", cm)
 	return cm, nil
 }
 
